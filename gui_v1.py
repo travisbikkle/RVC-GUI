@@ -3,6 +3,12 @@ import sys
 from dotenv import load_dotenv
 import shutil
 
+# 添加调试信息
+print("=== RVC GUI 启动调试信息 ===")
+print(f"当前工作目录: {os.getcwd()}")
+print(f"Python 版本: {sys.version}")
+print(f"Python 路径: {sys.executable}")
+
 load_dotenv()
 
 os.environ["OMP_NUM_THREADS"] = "4"
@@ -14,6 +20,22 @@ sys.path.append(now_dir)
 import multiprocessing
 
 flag_vc = False
+
+# 添加调试函数
+def debug_print(message, *args):
+    """调试打印函数"""
+    import datetime
+    import inspect
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # 获取调用者的行号
+    frame = inspect.currentframe().f_back
+    line_no = frame.f_lineno if frame else "?"
+    if len(args) == 0:
+        print(f"[DEBUG {timestamp}] [Line {line_no}] {message}")
+    else:
+        print(f"[DEBUG {timestamp}] [Line {line_no}] {message % args}")
+
+debug_print("开始导入模块...")
 
 
 def printt(strr, *args):
@@ -72,29 +94,65 @@ class Harvest(multiprocessing.Process):
 
 
 if __name__ == "__main__":
-    import json
-    import multiprocessing
-    import re
-    import threading
-    import time
-    import traceback
-    from multiprocessing import Queue, cpu_count
-    from queue import Empty
+    debug_print("=== 主程序开始执行 ===")
+    
+    try:
+        debug_print("开始导入基础模块...")
+        import json
+        import multiprocessing
+        import re
+        import threading
+        import time
+        import traceback
+        from multiprocessing import Queue, cpu_count
+        from queue import Empty
+        debug_print("基础模块导入完成")
 
-    import librosa
-    from tools.torchgate import TorchGate
-    import numpy as np
-    import FreeSimpleGUI as sg
-    import sounddevice as sd
-    import torch
-    import torch.nn.functional as F
-    import torchaudio.transforms as tat
+        debug_print("开始导入科学计算模块...")
+        import librosa
+        debug_print("librosa 导入完成")
+        
+        debug_print("开始导入工具模块...")
+        from tools.torchgate import TorchGate
+        debug_print("TorchGate 导入完成")
+        
+        debug_print("开始导入数值计算模块...")
+        import numpy as np
+        debug_print("numpy 导入完成")
+        
+        debug_print("开始导入GUI模块...")
+        import FreeSimpleGUI as sg
+        debug_print("FreeSimpleGUI 导入完成")
+        
+        debug_print("开始导入音频模块...")
+        import sounddevice as sd
+        debug_print("sounddevice 导入完成")
+        
+        debug_print("开始导入PyTorch模块...")
+        import torch
+        import torch.nn.functional as F
+        import torchaudio.transforms as tat
+        debug_print("PyTorch 模块导入完成")
+        
+        debug_print("开始导入RVC模块...")
+        from infer.lib import rtrvc as rvc_for_realtime
+        debug_print("RVC 模块导入完成")
+        
+        debug_print("开始导入配置模块...")
+        from i18n.i18n import I18nAuto
+        from configs.config import Config
+        debug_print("配置模块导入完成")
 
-    from infer.lib import rtrvc as rvc_for_realtime
-    from i18n.i18n import I18nAuto
-    from configs.config import Config
-
-    i18n = I18nAuto()
+        debug_print("初始化国际化...")
+        i18n = I18nAuto()
+        debug_print("国际化初始化完成")
+        
+    except Exception as e:
+        debug_print(f"模块导入失败: {e}")
+        import traceback
+        traceback.print_exc()
+        input("按回车键退出...")
+        sys.exit(1)
 
     # device = rvc_for_realtime.config.device
     # device = torch.device(
@@ -102,14 +160,22 @@ if __name__ == "__main__":
     #     if torch.cuda.is_available()
     #     else ("mps" if torch.backends.mps.is_available() else "cpu")
     # )
+    debug_print("开始初始化多进程组件...")
     current_dir = os.getcwd()
+    debug_print(f"当前目录: {current_dir}")
+    
     inp_q = Queue()
     opt_q = Queue()
     n_cpu = min(cpu_count(), 8)
-    for _ in range(n_cpu):
+    debug_print(f"CPU核心数: {n_cpu}")
+    
+    for i in range(n_cpu):
         p = Harvest(inp_q, opt_q)
         p.daemon = True
         p.start()
+        debug_print(f"启动Harvest进程 {i+1}/{n_cpu}")
+    
+    debug_print("多进程组件初始化完成")
 
     class GUIConfig:
         def __init__(self) -> None:
@@ -136,23 +202,50 @@ if __name__ == "__main__":
 
     class GUI:
         def __init__(self) -> None:
-            self.gui_config = GUIConfig()
-            self.config = Config()
-            self.function = "vc"
-            self.delay_time = 0
-            self.hostapis = None
-            self.input_devices = None
-            self.output_devices = None
-            self.input_devices_indices = None
-            self.output_devices_indices = None
-            self.stream = None
-            self.update_devices()
-            self.launcher()
+            debug_print("开始初始化GUI...")
+            try:
+                debug_print("初始化GUI配置...")
+                self.gui_config = GUIConfig()
+                debug_print("GUI配置初始化完成")
+                
+                debug_print("初始化RVC配置...")
+                self.config = Config()
+                debug_print("RVC配置初始化完成")
+                
+                self.function = "vc"
+                self.delay_time = 0
+                self.hostapis = None
+                self.input_devices = None
+                self.output_devices = None
+                self.input_devices_indices = None
+                self.output_devices_indices = None
+                self.stream = None
+                
+                debug_print("更新音频设备...")
+                self.update_devices()
+                debug_print("音频设备更新完成")
+                
+                debug_print("启动GUI界面...")
+                self.launcher()
+                debug_print("GUI界面启动完成")
+                
+            except Exception as e:
+                debug_print(f"GUI初始化失败: {e}")
+                import traceback
+                traceback.print_exc()
+                input("GUI初始化失败，按回车键退出...")
+                sys.exit(1)
 
         def load(self):
+            debug_print("开始加载配置文件...")
             try:
+                debug_print("检查配置文件路径...")
                 if not os.path.exists("configs/inuse/config.json"):
+                    debug_print("配置文件不存在，复制默认配置...")
                     shutil.copy("configs/config.json", "configs/inuse/config.json")
+                    debug_print("配置文件复制完成")
+                
+                debug_print("读取配置文件...")
                 with open("configs/inuse/config.json", "r") as j:
                     data = json.load(j)
                     data["sr_model"] = data["sr_type"] == "sr_model"
@@ -178,25 +271,45 @@ if __name__ == "__main__":
                             ]
                     else:
                         data["sg_hostapi"] = self.hostapis[0]
-                        data["sg_input_device"] = self.input_devices[
-                            self.input_devices_indices.index(sd.default.device[0])
-                        ]
-                        data["sg_output_device"] = self.output_devices[
-                            self.output_devices_indices.index(sd.default.device[1])
-                        ]
-            except:
+                        debug_print(f"默认输入设备索引: {sd.default.device[0]}")
+                        debug_print(f"输入设备列表: {self.input_devices}")
+                        debug_print(f"输入设备索引列表: {self.input_devices_indices}")
+                        
+                        # 安全地设置输入设备
+                        if len(self.input_devices) > 0:
+                            if sd.default.device[0] in self.input_devices_indices:
+                                data["sg_input_device"] = self.input_devices[
+                                    self.input_devices_indices.index(sd.default.device[0])
+                                ]
+                            else:
+                                data["sg_input_device"] = self.input_devices[0]
+                        else:
+                            data["sg_input_device"] = "无输入设备"
+                        
+                        debug_print(f"默认输出设备索引: {sd.default.device[1]}")
+                        debug_print(f"输出设备列表: {self.output_devices}")
+                        debug_print(f"输出设备索引列表: {self.output_devices_indices}")
+                        
+                        # 安全地设置输出设备
+                        if len(self.output_devices) > 0:
+                            if sd.default.device[1] in self.output_devices_indices:
+                                data["sg_output_device"] = self.output_devices[
+                                    self.output_devices_indices.index(sd.default.device[1])
+                                ]
+                            else:
+                                data["sg_output_device"] = self.output_devices[0]
+                        else:
+                            data["sg_output_device"] = "无输出设备"
+            except Exception as e:
+                debug_print(f"加载配置文件时出错: {e}")
                 with open("configs/inuse/config.json", "w") as j:
                     data = {
                         "pth_path": "",
                         "index_path": "",
                         "sg_hostapi": self.hostapis[0],
                         "sg_wasapi_exclusive": False,
-                        "sg_input_device": self.input_devices[
-                            self.input_devices_indices.index(sd.default.device[0])
-                        ],
-                        "sg_output_device": self.output_devices[
-                            self.output_devices_indices.index(sd.default.device[1])
-                        ],
+                        "sg_input_device": self.input_devices[0] if len(self.input_devices) > 0 else "无输入设备",
+                        "sg_output_device": self.output_devices[0] if len(self.output_devices) > 0 else "无输出设备",
                         "sr_type": "sr_model",
                         "threhold": -60,
                         "pitch": 0,
@@ -221,9 +334,18 @@ if __name__ == "__main__":
             return data
 
         def launcher(self):
-            data = self.load()
-            self.config.use_jit = False  # data.get("use_jit", self.config.use_jit)
-            sg.theme("LightBlue3")
+            debug_print("开始启动GUI界面...")
+            try:
+                debug_print("加载配置数据...")
+                data = self.load()
+                debug_print("配置数据加载完成")
+                
+                self.config.use_jit = False  # data.get("use_jit", self.config.use_jit)
+                debug_print("设置GUI主题...")
+                sg.theme("LightBlue3")
+                debug_print("GUI主题设置完成")
+            finally:
+                debug_print("开始构建GUI布局...")
             layout = [
                 [
                     sg.Frame(
@@ -1009,47 +1131,85 @@ if __name__ == "__main__":
 
         def update_devices(self, hostapi_name=None):
             """获取设备列表"""
-            global flag_vc
-            flag_vc = False
-            sd._terminate()
-            sd._initialize()
-            devices = sd.query_devices()
-            hostapis = sd.query_hostapis()
-            for hostapi in hostapis:
-                for device_idx in hostapi["devices"]:
-                    devices[device_idx]["hostapi_name"] = hostapi["name"]
-            self.hostapis = [hostapi["name"] for hostapi in hostapis]
-            if hostapi_name not in self.hostapis:
-                hostapi_name = self.hostapis[0]
-            self.input_devices = [
-                d["name"]
-                for d in devices
-                if d["max_input_channels"] > 0 and d["hostapi_name"] == hostapi_name
-            ]
-            self.output_devices = [
-                d["name"]
-                for d in devices
-                if d["max_output_channels"] > 0 and d["hostapi_name"] == hostapi_name
-            ]
-            self.input_devices_indices = [
-                d["index"] if "index" in d else d["name"]
-                for d in devices
-                if d["max_input_channels"] > 0 and d["hostapi_name"] == hostapi_name
-            ]
-            self.output_devices_indices = [
-                d["index"] if "index" in d else d["name"]
-                for d in devices
-                if d["max_output_channels"] > 0 and d["hostapi_name"] == hostapi_name
-            ]
+            debug_print("开始更新音频设备列表...")
+            try:
+                global flag_vc
+                flag_vc = False
+                debug_print("终止sounddevice...")
+                sd._terminate()
+                debug_print("初始化sounddevice...")
+                sd._initialize()
+                debug_print("查询音频设备...")
+                devices = sd.query_devices()
+                debug_print(f"找到 {len(devices)} 个音频设备")
+                hostapis = sd.query_hostapis()
+                debug_print(f"找到 {len(hostapis)} 个音频API")
+                for hostapi in hostapis:
+                    for device_idx in hostapi["devices"]:
+                        devices[device_idx]["hostapi_name"] = hostapi["name"]
+                self.hostapis = [hostapi["name"] for hostapi in hostapis]
+                if hostapi_name not in self.hostapis:
+                    hostapi_name = self.hostapis[0]
+                self.input_devices = [
+                    d["name"]
+                    for d in devices
+                    if d["max_input_channels"] > 0 and d["hostapi_name"] == hostapi_name
+                ]
+                self.output_devices = [
+                    d["name"]
+                    for d in devices
+                    if d["max_output_channels"] > 0 and d["hostapi_name"] == hostapi_name
+                ]
+                self.input_devices_indices = [
+                    d["index"] if "index" in d else d["name"]
+                    for d in devices
+                    if d["max_input_channels"] > 0 and d["hostapi_name"] == hostapi_name
+                ]
+                self.output_devices_indices = [
+                    d["index"] if "index" in d else d["name"]
+                    for d in devices
+                    if d["max_output_channels"] > 0 and d["hostapi_name"] == hostapi_name
+                ]
+                debug_print(f"输入设备数量: {len(self.input_devices)}")
+                debug_print(f"输出设备数量: {len(self.output_devices)}")
+                debug_print("音频设备列表更新完成")
+            except Exception as e:
+                debug_print(f"更新音频设备失败: {e}")
+                import traceback
+                traceback.print_exc()
 
         def set_devices(self, input_device, output_device):
             """设置输出设备"""
-            sd.default.device[0] = self.input_devices_indices[
-                self.input_devices.index(input_device)
-            ]
-            sd.default.device[1] = self.output_devices_indices[
-                self.output_devices.index(output_device)
-            ]
+            debug_print(f"设置设备 - 输入设备: {input_device}, 输出设备: {output_device}")
+            debug_print(f"可用输入设备: {self.input_devices}")
+            debug_print(f"可用输出设备: {self.output_devices}")
+            
+            # 安全地设置输入设备
+            if input_device in self.input_devices:
+                sd.default.device[0] = self.input_devices_indices[
+                    self.input_devices.index(input_device)
+                ]
+            else:
+                debug_print(f"输入设备 '{input_device}' 不在可用设备列表中")
+                if len(self.input_devices) > 0:
+                    sd.default.device[0] = self.input_devices_indices[0]
+                    debug_print(f"使用默认输入设备: {self.input_devices[0]}")
+                else:
+                    debug_print("没有可用的输入设备")
+            
+            # 安全地设置输出设备
+            if output_device in self.output_devices:
+                sd.default.device[1] = self.output_devices_indices[
+                    self.output_devices.index(output_device)
+                ]
+            else:
+                debug_print(f"输出设备 '{output_device}' 不在可用设备列表中")
+                if len(self.output_devices) > 0:
+                    sd.default.device[1] = self.output_devices_indices[0]
+                    debug_print(f"使用默认输出设备: {self.output_devices[0]}")
+                else:
+                    debug_print("没有可用的输出设备")
+            
             printt("Input device: %s:%s", str(sd.default.device[0]), input_device)
             printt("Output device: %s:%s", str(sd.default.device[1]), output_device)
 
@@ -1067,4 +1227,14 @@ if __name__ == "__main__":
             ]
             return min(max_input_channels, max_output_channels, 2)
 
-    gui = GUI()
+    debug_print("=== 开始创建GUI实例 ===")
+    try:
+        gui = GUI()
+        debug_print("GUI实例创建成功")
+        debug_print("=== 程序启动完成 ===")
+    except Exception as e:
+        debug_print(f"GUI实例创建失败: {e}")
+        import traceback
+        traceback.print_exc()
+        input("GUI实例创建失败，按回车键退出...")
+        sys.exit(1)
